@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcutil"
-	"github.com/deso-protocol/core/lib"
+	"github.com/deso-smart/deso-core/v2/lib"
 	"os"
 )
 

@@ -10,7 +10,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/deso-protocol/core/lib"
+	"github.com/deso-smart/deso-core/v2/lib"
 )
 
 type AdminGetNFTDropRequest struct {

@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/deso-protocol/core/lib"
+	"github.com/deso-smart/deso-core/v2/lib"
 )
 
 // AdminPinPostRequest ...

@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	coreCmd "github.com/deso-protocol/core/cmd"
+	coreCmd "github.com/deso-smart/deso-core/v2/cmd"
 	"github.com/spf13/viper"
 )
 

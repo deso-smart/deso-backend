@@ -6,7 +6,7 @@ import (
 	"syscall"
 
 	"github.com/deso-smart/deso-backend/v2/config"
-	coreCmd "github.com/deso-protocol/core/cmd"
+	coreCmd "github.com/deso-smart/deso-core/v2/cmd"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"

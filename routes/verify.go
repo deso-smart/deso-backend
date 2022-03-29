@@ -19,7 +19,7 @@ import (
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
 
-	"github.com/deso-protocol/core/lib"
+	"github.com/deso-smart/deso-core/v2/lib"
 	"github.com/golang/glog"
 	"github.com/nyaruka/phonenumbers"
 	"github.com/pkg/errors"

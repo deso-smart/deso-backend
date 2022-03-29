@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/deso-protocol/core/lib"
+	"github.com/deso-smart/deso-core/v2/lib"
 	"github.com/golang/glog"
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"

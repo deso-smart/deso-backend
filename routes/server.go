@@ -16,7 +16,7 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/tyler-smith/go-bip39"
 
-	"github.com/deso-protocol/core/lib"
+	"github.com/deso-smart/deso-core/v2/lib"
 	"github.com/dgraph-io/badger/v3"
 	"github.com/golang/glog"
 	"github.com/kevinburke/twilio-go"

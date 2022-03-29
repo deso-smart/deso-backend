@@ -3,7 +3,7 @@ package routes
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/deso-protocol/core/lib"
+	"github.com/deso-smart/deso-core/v2/lib"
 	"strconv"
 )
 

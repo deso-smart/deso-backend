@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/deso-smart/deso-backend/v2/routes"
-	"github.com/deso-protocol/core/lib"
+	"github.com/deso-smart/deso-core/v2/lib"
 	"io/ioutil"
 	"net/http"
 	"runtime"

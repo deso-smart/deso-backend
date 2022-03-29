@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/deso-protocol/core/lib"
+	"github.com/deso-smart/deso-core/v2/lib"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	"github.com/tyler-smith/go-bip39"

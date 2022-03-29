@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/deso-smart/deso-backend/v2/routes"
 	"github.com/deso-smart/deso-backend/v2/scripts/tools/toolslib"
-	"github.com/deso-protocol/core/lib"
+	"github.com/deso-smart/deso-core/v2/lib"
 	"github.com/tyler-smith/go-bip39"
 )
 

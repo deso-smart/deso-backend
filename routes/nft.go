@@ -11,7 +11,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/deso-protocol/core/lib"
+	"github.com/deso-smart/deso-core/v2/lib"
 )
 
 type NFTEntryResponse struct {

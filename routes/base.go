@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/deso-protocol/core/lib"
+	"github.com/deso-smart/deso-core/v2/lib"
 	"github.com/golang/glog"
 	"github.com/montanaflynn/stats"
 )
