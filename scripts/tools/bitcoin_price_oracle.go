@@ -3,8 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/deso-protocol/backend/routes"
-	"github.com/deso-protocol/backend/scripts/tools/toolslib"
+	"github.com/deso-smart/deso-backend/v2/routes"
+	"github.com/deso-smart/deso-backend/v2/scripts/tools/toolslib"
 	"github.com/deso-protocol/core/lib"
 	"github.com/tyler-smith/go-bip39"
 )

@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
-	"github.com/deso-protocol/backend/routes"
+	"github.com/deso-smart/deso-backend/v2/routes"
 	"github.com/deso-protocol/core/lib"
 	"github.com/pkg/errors"
 	"io/ioutil"

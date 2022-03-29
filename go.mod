@@ -1,4 +1,4 @@
-module github.com/deso-protocol/backend
+module github.com/deso-smart/deso-backend/v2
 
 go 1.16
 

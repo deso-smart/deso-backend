@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/btcsuite/btcd/btcec"
-	"github.com/deso-protocol/backend/config"
+	"github.com/deso-smart/deso-backend/v2/config"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/tyler-smith/go-bip39"
 

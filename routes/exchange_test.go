@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	chainlib "github.com/btcsuite/btcd/blockchain"
-	"github.com/deso-protocol/backend/config"
+	"github.com/deso-smart/deso-backend/v2/config"
 	"github.com/deso-protocol/core/lib"
 	"io"
 	"io/ioutil"
@@ -135,7 +135,7 @@ func NewTestMiner(t *testing.T, chain *lib.Blockchain, params *lib.DeSoParams, i
 
 	mempool := lib.NewDeSoMempool(
 		chain, 0, /* rateLimitFeeRateNanosPerKB */
-		0 /* minFeeRateNanosPerKB */, "", true,
+		0  /* minFeeRateNanosPerKB */, "", true,
 		"" /*dataDir*/, "")
 	minerPubKeys := []string{}
 	if isSender {

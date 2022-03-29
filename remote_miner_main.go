@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	"github.com/deso-protocol/backend/miner"
+	"github.com/deso-smart/deso-backend/v2/miner"
 
 	"github.com/golang/glog"
 )

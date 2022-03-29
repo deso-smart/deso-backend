@@ -5,7 +5,7 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
-	"github.com/deso-protocol/backend/countries"
+	"github.com/deso-smart/deso-backend/v2/countries"
 	"github.com/deso-protocol/core/lib"
 	"github.com/golang/glog"
 	"io"

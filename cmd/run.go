@@ -5,7 +5,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/deso-protocol/backend/config"
+	"github.com/deso-smart/deso-backend/v2/config"
 	coreCmd "github.com/deso-protocol/core/cmd"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"

@@ -6,7 +6,7 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
-	"github.com/deso-protocol/backend/countries"
+	"github.com/deso-smart/deso-backend/v2/countries"
 	"io"
 	"io/ioutil"
 	"net/http"
