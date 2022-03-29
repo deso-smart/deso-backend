@@ -351,7 +351,7 @@ func (fes *APIServer) _balanceEntryToResponse(
 		CreatorPublicKeyBase58Check: lib.PkToString(creatorPk, fes.Params),
 		HasPurchased:                balanceEntry.HasPurchased,
 		// CreatorCoins can't exceed uint64
-		BalanceNanos:        balanceEntry.BalanceNanos.Uint64(),
+		BalanceNanos: balanceEntry.BalanceNanos.Uint64(),
 		// Use this value for DAO Coins balances
 		BalanceNanosUint256: balanceEntry.BalanceNanos,
 		NetBalanceInMempool: int64(balanceEntry.BalanceNanos.Uint64()) - int64(dbBalanceNanos),
@@ -606,11 +606,11 @@ type ProfileEntryResponse struct {
 }
 
 type CoinEntryResponse struct {
-	CreatorBasisPoints        uint64
-	DeSoLockedNanos           uint64
-	NumberOfHolders           uint64
-	CoinsInCirculationNanos   uint64
-	CoinWatermarkNanos        uint64
+	CreatorBasisPoints      uint64
+	DeSoLockedNanos         uint64
+	NumberOfHolders         uint64
+	CoinsInCirculationNanos uint64
+	CoinWatermarkNanos      uint64
 
 	// Deprecated: Temporary to add support for BitCloutLockedNanos
 	BitCloutLockedNanos uint64 // Deprecated
@@ -970,9 +970,9 @@ func (fes *APIServer) _profileEntryToResponse(profileEntry *lib.ProfileEntry, ut
 			BitCloutLockedNanos:     profileEntry.CreatorCoinEntry.DeSoLockedNanos,
 		},
 		DAOCoinEntry: &DAOCoinEntryResponse{
-			NumberOfHolders:           profileEntry.DAOCoinEntry.NumberOfHolders,
-			CoinsInCirculationNanos:   profileEntry.DAOCoinEntry.CoinsInCirculationNanos,
-			MintingDisabled:           profileEntry.DAOCoinEntry.MintingDisabled,
+			NumberOfHolders:         profileEntry.DAOCoinEntry.NumberOfHolders,
+			CoinsInCirculationNanos: profileEntry.DAOCoinEntry.CoinsInCirculationNanos,
+			MintingDisabled:         profileEntry.DAOCoinEntry.MintingDisabled,
 			TransferRestrictionStatus: getTransferRestrictionStatusStringFromTransferRestrictionStatus(
 				profileEntry.DAOCoinEntry.TransferRestrictionStatus),
 		},
