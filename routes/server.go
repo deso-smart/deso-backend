@@ -59,30 +59,38 @@ const (
 	RoutePathAuthorizeDerivedKey      = "/api/v0/authorize-derived-key"
 	RoutePathDAOCoin                  = "/api/v0/dao-coin"
 	RoutePathTransferDAOCoin          = "/api/v0/transfer-dao-coin"
+	RoutePathCreateDAOCoinLimitOrder  = "/api/v0/create-dao-coin-limit-order"
+	RoutePathCancelDAOCoinLimitOrder  = "/api/v0/cancel-dao-coin-limit-order"
 	RoutePathAppendExtraData          = "/api/v0/append-extra-data"
 	RoutePathGetTransactionSpending   = "/api/v0/get-transaction-spending"
 
-	RoutePathGetUsersStateless           = "/api/v0/get-users-stateless"
-	RoutePathDeleteIdentities            = "/api/v0/delete-identities"
-	RoutePathGetProfiles                 = "/api/v0/get-profiles"
-	RoutePathGetSingleProfile            = "/api/v0/get-single-profile"
-	RoutePathGetSingleProfilePicture     = "/api/v0/get-single-profile-picture"
-	RoutePathGetHodlersForPublicKey      = "/api/v0/get-hodlers-for-public-key"
-	RoutePathGetDiamondsForPublicKey     = "/api/v0/get-diamonds-for-public-key"
-	RoutePathGetFollowsStateless         = "/api/v0/get-follows-stateless"
-	RoutePathGetUserGlobalMetadata       = "/api/v0/get-user-global-metadata"
-	RoutePathUpdateUserGlobalMetadata    = "/api/v0/update-user-global-metadata"
-	RoutePathGetNotifications            = "/api/v0/get-notifications"
-	RoutePathGetUnreadNotificationsCount = "/api/v0/get-unread-notifications-count"
-	RoutePathSetNotificationMetadata     = "/api/v0/set-notification-metadata"
-	RoutePathBlockPublicKey              = "/api/v0/block-public-key"
-	RoutePathIsFollowingPublicKey        = "/api/v0/is-following-public-key"
-	RoutePathIsHodlingPublicKey          = "/api/v0/is-hodling-public-key"
-	RoutePathGetUserDerivedKeys          = "/api/v0/get-user-derived-keys"
-	RoutePathDeletePII                   = "/api/v0/delete-pii"
-	RoutePathGetUserMetadata             = "/api/v0/get-user-metadata"
-	RoutePathGetUsernameForPublicKey     = "/api/v0/get-user-name-for-public-key"
-	RoutePathGetPublicKeyForUsername     = "/api/v0/get-public-key-for-user-name"
+	RoutePathGetUsersStateless                          = "/api/v0/get-users-stateless"
+	RoutePathDeleteIdentities                           = "/api/v0/delete-identities"
+	RoutePathGetProfiles                                = "/api/v0/get-profiles"
+	RoutePathGetSingleProfile                           = "/api/v0/get-single-profile"
+	RoutePathGetSingleProfilePicture                    = "/api/v0/get-single-profile-picture"
+	RoutePathGetHodlersForPublicKey                     = "/api/v0/get-hodlers-for-public-key"
+	RoutePathGetDiamondsForPublicKey                    = "/api/v0/get-diamonds-for-public-key"
+	RoutePathGetFollowsStateless                        = "/api/v0/get-follows-stateless"
+	RoutePathGetUserGlobalMetadata                      = "/api/v0/get-user-global-metadata"
+	RoutePathUpdateUserGlobalMetadata                   = "/api/v0/update-user-global-metadata"
+	RoutePathGetNotifications                           = "/api/v0/get-notifications"
+	RoutePathGetUnreadNotificationsCount                = "/api/v0/get-unread-notifications-count"
+	RoutePathSetNotificationMetadata                    = "/api/v0/set-notification-metadata"
+	RoutePathBlockPublicKey                             = "/api/v0/block-public-key"
+	RoutePathIsFollowingPublicKey                       = "/api/v0/is-following-public-key"
+	RoutePathIsHodlingPublicKey                         = "/api/v0/is-hodling-public-key"
+	RoutePathGetUserDerivedKeys                         = "/api/v0/get-user-derived-keys"
+	RoutePathGetTransactionSpendingLimitHexString       = "/api/v0/get-transaction-spending-limit-hex-string"
+	RoutePathGetTransactionSpendingLimitResponseFromHex = "/api/v0/get-transaction-spending-limit-response-from-hex"
+	RoutePathDeletePII                                  = "/api/v0/delete-pii"
+	RoutePathGetUserMetadata                            = "/api/v0/get-user-metadata"
+	RoutePathGetUsernameForPublicKey                    = "/api/v0/get-user-name-for-public-key"
+	RoutePathGetPublicKeyForUsername                    = "/api/v0/get-public-key-for-user-name"
+
+	// dao_coin_exchange.go
+	RoutePathGetDaoCoinLimitOrders           = "/api/v0/get-dao-coin-limit-orders"
+	RoutePathGetTransactorDaoCoinLimitOrders = "/api/v0/get-transactor-dao-coin-limit-orders"
 
 	// post.go
 	RoutePathGetPostsStateless      = "/api/v0/get-posts-stateless"
@@ -853,6 +861,20 @@ func (fes *APIServer) NewRouter() *muxtrace.Router {
 			PublicAccess,
 		},
 		{
+			"CreateDAOCoinLimitOrder",
+			[]string{"POST", "OPTIONS"},
+			RoutePathCreateDAOCoinLimitOrder,
+			fes.CreateDAOCoinLimitOrder,
+			PublicAccess,
+		},
+		{
+			"CancelDAOCoinLimitOrder",
+			[]string{"POST", "OPTIONS"},
+			RoutePathCancelDAOCoinLimitOrder,
+			fes.CancelDAOCoinLimitOrder,
+			PublicAccess,
+		},
+		{
 			"AppendExtraData",
 			[]string{"POST", "OPTIONS"},
 			RoutePathAppendExtraData,
@@ -972,6 +994,20 @@ func (fes *APIServer) NewRouter() *muxtrace.Router {
 			PublicAccess,
 		},
 		{
+			"GetTransactionSpendingLimitHexString",
+			[]string{"POST", "OPTIONS"},
+			RoutePathGetTransactionSpendingLimitHexString,
+			fes.GetTransactionSpendingLimitHexString,
+			PublicAccess,
+		},
+		{
+			"GetTransactionSpendingLimitResponseFromHex",
+			[]string{"GET"},
+			RoutePathGetTransactionSpendingLimitResponseFromHex + "/{transactionSpendingLimitHex:[a-fA-F0-9]+$}",
+			fes.GetTransactionSpendingLimitResponseFromHex,
+			PublicAccess,
+		},
+		{
 			"DeletePII",
 			[]string{"POST", "OPTIONS"},
 			RoutePathDeletePII,
@@ -997,6 +1033,20 @@ func (fes *APIServer) NewRouter() *muxtrace.Router {
 			[]string{"GET"},
 			RoutePathGetPublicKeyForUsername + "/{username:[a-zA-Z0-9_]{1,26}",
 			fes.GetPublicKeyForUsername,
+			PublicAccess,
+		},
+		{
+			"GetDAOCoinLimitOrders",
+			[]string{"POST", "OPTIONS"},
+			RoutePathGetDaoCoinLimitOrders,
+			fes.GetDAOCoinLimitOrders,
+			PublicAccess,
+		},
+		{
+			"GetTransactorDAOCoinLimitOrders",
+			[]string{"POST", "OPTIONS"},
+			RoutePathGetTransactorDaoCoinLimitOrders,
+			fes.GetTransactorDAOCoinLimitOrders,
 			PublicAccess,
 		},
 		// Jumio Routes
