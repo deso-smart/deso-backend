@@ -1,10 +1,6 @@
 package cmd
 
 import (
-	"os"
-	"os/signal"
-	"syscall"
-
 	"github.com/deso-smart/deso-backend/v2/config"
 	coreCmd "github.com/deso-smart/deso-core/v2/cmd"
 	"github.com/spf13/cobra"
@@ -23,19 +19,20 @@ var runCmd = &cobra.Command{
 }
 
 func Run(cmd *cobra.Command, args []string) {
+	shutdownListener := make(chan struct{})
+
 	// Start the core node
 	coreConfig := coreCmd.LoadConfig()
 	coreNode := coreCmd.NewNode(coreConfig)
-	coreNode.Start()
+	coreNode.Start(&shutdownListener)
 
 	// Start the backend node
 	nodeConfig := config.LoadConfig(coreConfig)
 	node := NewNode(nodeConfig, coreNode)
 	node.Start()
 
-	shutdownListener := make(chan os.Signal)
-	signal.Notify(shutdownListener, syscall.SIGINT, syscall.SIGTERM)
 	defer func() {
+		coreNode.Stop()
 		node.Stop()
 		glog.Info("Shutdown complete")
 	}()

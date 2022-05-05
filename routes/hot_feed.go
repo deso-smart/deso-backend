@@ -392,8 +392,27 @@ func (fes *APIServer) UpdateHotFeedOrderedList(
 	// block or the chain is out of sync, bail.
 	blockTip := fes.blockchain.BlockTip()
 	chainState := fes.blockchain.ChainState()
+
+	// This offset allows us to see what the hot feed would look like in the past,
+	// which is useful for testing purposes.
+	blockOffsetForTesting := 0
+
+	// Grab the last 90 days worth of blocks (25,920 blocks @ 5min/block).
+	lookbackWindowBlocks := 90 * 24 * 60 / 5
+	// Check if the most recent blocks that we'll be considering in hot feed computation have been processed.
+	chainFullyStored := true
+	for _, blockNode := range fes.blockchain.BestChain() {
+		if blockNode.Height < blockTip.Height-uint32(lookbackWindowBlocks+blockOffsetForTesting) {
+			continue
+		}
+
+		if !blockNode.Status.IsFullyProcessed() {
+			chainFullyStored = false
+			break
+		}
+	}
 	if (!foundNewConstants && blockTip.Height <= fes.HotFeedBlockHeight) ||
-		chainState != lib.SyncStateFullyCurrent {
+		chainState != lib.SyncStateFullyCurrent || !chainFullyStored {
 		return nil
 	}
 
@@ -408,12 +427,7 @@ func (fes *APIServer) UpdateHotFeedOrderedList(
 		return nil
 	}
 
-	// This offset allows us to see what the hot feed would look like in the past,
-	// which is useful for testing purposes.
-	blockOffsetForTesting := 0
-
-	// Grab the last 90 days worth of blocks (25,920 blocks @ 5min/block).
-	lookbackWindowBlocks := 90 * 24 * 60 / 5
+	// Grab the last 24 hours worth of blocks (288 blocks @ 5min/block).
 	blockTipIndex := len(fes.blockchain.BestChain()) - 1 - blockOffsetForTesting
 	relevantNodes := fes.blockchain.BestChain()
 	if len(fes.blockchain.BestChain()) > (lookbackWindowBlocks + blockOffsetForTesting) {
@@ -426,7 +440,7 @@ func (fes *APIServer) UpdateHotFeedOrderedList(
 		if cachedBlock, ok := fes.HotFeedBlockCache[*node.Hash]; ok {
 			block = cachedBlock
 		} else {
-			block, _ = lib.GetBlock(node.Hash, utxoView.Handle)
+			block, _ = lib.GetBlock(node.Hash, utxoView.Handle, fes.blockchain.Snapshot())
 			fes.HotFeedBlockCache[*node.Hash] = block
 		}
 		hotnessInfoBlocks = append(hotnessInfoBlocks, &hotnessInfoBlock{
