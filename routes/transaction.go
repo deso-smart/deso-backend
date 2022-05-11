@@ -392,7 +392,11 @@ func (fes *APIServer) UpdateProfile(ww http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	extraData := preprocessExtraData(requestData.ExtraData)
+	extraData, err := EncodeExtraDataMap(requestData.ExtraData)
+	if err != nil {
+		_AddBadRequestError(ww, fmt.Sprintf("UpdateProfile: Problem encoding ExtraData: %v", err))
+		return
+	}
 
 	additionalFees, compProfileCreationTxnHash, err := fes.CompProfileCreation(profilePublicKey, userMetadata, utxoView)
 	if err != nil {
@@ -763,33 +767,19 @@ func (fes *APIServer) ExchangeBitcoinStateless(ww http.ResponseWriter, req *http
 		// TODO: We use a pretty janky API to check for this, and if it goes down then
 		// BitcoinExchange txns break. But without it we're vulnerable to double-spends
 		// so we keep it for now.
-		if fes.Params.NetworkType == lib.NetworkType_MAINNET {
-			// Go through the transaction's inputs. If any of them have RBF set then we
-			// must assume that this transaction has RBF as well.
-			for _, txIn := range bitcoinTxn.TxIn {
-				isRBF, err := lib.BlockonomicsCheckRBF(txIn.PreviousOutPoint.Hash.String())
-				if err != nil {
-					glog.Errorf("ExchangeBitcoinStateless: ERROR: Blockonomics request to check RBF for txn "+
-						"hash %v failed. This is bad because it means users are not able to "+
-						"complete Bitcoin burns: %v", txIn.PreviousOutPoint.Hash.String(), err)
-					_AddBadRequestError(ww, fmt.Sprintf(
-						"The nodes are still processing your deposit. Please wait a few seconds "+
-							"and try again."))
-					return
-				}
-				// If we got a success response from Blockonomics then bail if the transaction has
-				// RBF set.
-				if isRBF {
-					glog.Errorf("ExchangeBitcoinStateless: ERROR: Blockonomics found RBF txn: %v", bitcoinTxnHash.String())
-					_AddBadRequestError(ww, fmt.Sprintf(
-						"Your deposit has \"replace by fee\" set, "+
-							"which means we must wait for one confirmation on the Bitcoin blockchain before "+
-							"allowing you to buy. This usually takes about ten minutes.<br><br>"+
-							"You can see how many confirmations your deposit has by "+
-							"<a target=\"_blank\" href=\"https://www.blockchain.com/btc/tx/%v\">clicking here</a>.", txIn.PreviousOutPoint.Hash.String()))
-					return
-				}
-			}
+		isRBF, err := lib.CheckRBF(bitcoinTxn, bitcoinTxnHash, fes.Params)
+		if err != nil {
+			_AddBadRequestError(ww, fmt.Sprintf("Error checking RBF for txn: %v", err))
+			return
+		}
+		if isRBF {
+			_AddBadRequestError(ww, fmt.Sprintf(
+				"Your deposit has \"replace by fee\" set, "+
+					"which means we must wait for one confirmation on the Bitcoin blockchain before "+
+					"allowing you to buy. This usually takes about ten minutes.<br><br>"+
+					"You can see how many confirmations your deposit has by "+
+					"<a target=\"_blank\" href=\"https://www.blockchain.com/btc/tx/%v\">clicking here</a>.", bitcoinTxnHash.String()))
+			return
 		}
 
 		// If a BlockCypher API key is set then use BlockCypher to do the checks. Otherwise
@@ -1397,7 +1387,11 @@ func (fes *APIServer) SubmitPost(ww http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	postExtraData := preprocessPostExtraData(requestData.PostExtraData)
+	postExtraData, err := EncodeExtraDataMap(requestData.PostExtraData)
+	if err != nil {
+		_AddBadRequestError(ww, fmt.Sprintf("SubmitPost: Problem decoding ExtraData: %v", err))
+		return
+	}
 
 	// Try and create the SubmitPost for the user.
 	tstamp := uint64(time.Now().UnixNano())
@@ -2603,9 +2597,18 @@ func (fes *APIServer) CreateDAOCoinLimitOrder(ww http.ResponseWriter, req *http.
 		)
 		return
 	}
-	scaledExchangeRateCoinsToSellPerCoinToBuy, err := lib.CalculateScaledExchangeRate(
+	scaledExchangeRateCoinsToSellPerCoinToBuy, err := CalculateScaledExchangeRate(
+		requestData.BuyingDAOCoinCreatorPublicKeyBase58CheckOrUsername,
+		requestData.SellingDAOCoinCreatorPublicKeyBase58CheckOrUsername,
 		requestData.ExchangeRateCoinsToSellPerCoinToBuy,
 	)
+	if err != nil {
+		_AddBadRequestError(ww, fmt.Sprintf("CreateDAOCoinLimitOrder: %v", err))
+		return
+	}
+
+	// Validate operation type
+	operationType, err := orderOperationTypeToUint64(requestData.OperationType)
 	if err != nil {
 		_AddBadRequestError(ww, fmt.Sprintf("CreateDAOCoinLimitOrder: %v", err))
 		return
@@ -2616,16 +2619,13 @@ func (fes *APIServer) CreateDAOCoinLimitOrder(ww http.ResponseWriter, req *http.
 		_AddBadRequestError(ww, fmt.Sprint("CreateDAOCoinLimitOrder: QuantityToFill must be greater than 0"))
 		return
 	}
-	quantityToFillInBaseUnits, err := calculateQuantityToFillAsBaseUnits(
+
+	quantityToFillInBaseUnits, err := CalculateQuantityToFillAsBaseUnits(
+		requestData.BuyingDAOCoinCreatorPublicKeyBase58CheckOrUsername,
+		requestData.SellingDAOCoinCreatorPublicKeyBase58CheckOrUsername,
+		requestData.OperationType,
 		requestData.QuantityToFill,
 	)
-	if err != nil {
-		_AddBadRequestError(ww, fmt.Sprintf("CreateDAOCoinLimitOrder: %v", err))
-		return
-	}
-
-	// Validate operation type
-	operationType, err := orderOperationTypeToUint64(requestData.OperationType)
 	if err != nil {
 		_AddBadRequestError(ww, fmt.Sprintf("CreateDAOCoinLimitOrder: %v", err))
 		return
@@ -2706,21 +2706,25 @@ func (fes *APIServer) CreateDAOCoinMarketOrder(ww http.ResponseWriter, req *http
 		return
 	}
 
-	// Validate and convert quantity to base units
-	if requestData.QuantityToFill <= 0 {
-		_AddBadRequestError(ww, fmt.Sprint("CreateDAOCoinMarketOrder: QuantityToFill must be greater than 0"))
-		return
-	}
-	quantityToFillInBaseUnits, err := calculateQuantityToFillAsBaseUnits(
-		requestData.QuantityToFill,
-	)
+	// Validate operation type
+	operationType, err := orderOperationTypeToUint64(requestData.OperationType)
 	if err != nil {
 		_AddBadRequestError(ww, fmt.Sprintf("CreateDAOCoinMarketOrder: %v", err))
 		return
 	}
 
-	// Validate operation type
-	operationType, err := orderOperationTypeToUint64(requestData.OperationType)
+	// Validate and convert quantity to base units
+	if requestData.QuantityToFill <= 0 {
+		_AddBadRequestError(ww, fmt.Sprint("CreateDAOCoinMarketOrder: QuantityToFill must be greater than 0"))
+		return
+	}
+
+	quantityToFillInBaseUnits, err := CalculateQuantityToFillAsBaseUnits(
+		requestData.BuyingDAOCoinCreatorPublicKeyBase58CheckOrUsername,
+		requestData.SellingDAOCoinCreatorPublicKeyBase58CheckOrUsername,
+		requestData.OperationType,
+		requestData.QuantityToFill,
+	)
 	if err != nil {
 		_AddBadRequestError(ww, fmt.Sprintf("CreateDAOCoinMarketOrder: %v", err))
 		return
@@ -3138,6 +3142,12 @@ func (fes *APIServer) AuthorizeDerivedKey(ww http.ResponseWriter, req *http.Requ
 		}
 	}
 
+	extraData, err := EncodeExtraDataMap(requestData.ExtraData)
+	if err != nil {
+		_AddBadRequestError(ww, fmt.Sprintf("AuthorizeDerivedKey: Problem decoding ExtraData: %v", err))
+		return
+	}
+
 	txn, totalInput, changeAmount, fees, err := fes.blockchain.CreateAuthorizeDerivedKeyTxn(
 		ownerPublicKeyBytes,
 		derivedPublicKeyBytes,
@@ -3145,7 +3155,7 @@ func (fes *APIServer) AuthorizeDerivedKey(ww http.ResponseWriter, req *http.Requ
 		accessSignature,
 		requestData.DeleteKey,
 		requestData.DerivedKeySignature,
-		preprocessExtraData(requestData.ExtraData),
+		extraData,
 		memo,
 		requestData.TransactionSpendingLimitHex,
 		// Standard transaction fields
@@ -3441,17 +3451,10 @@ func (fes *APIServer) AppendExtraData(ww http.ResponseWriter, req *http.Request)
 	}
 
 	// Append ExtraData entries
-	if txn.ExtraData == nil {
-		txn.ExtraData = make(map[string][]byte)
-	}
-
-	for k, v := range requestData.ExtraData {
-		vBytes, err := hex.DecodeString(v)
-		if err != nil {
-			_AddBadRequestError(ww, fmt.Sprintf("AppendExtraData: Problem decoding ExtraData: %v", err))
-			return
-		}
-		txn.ExtraData[k] = vBytes
+	txn.ExtraData, err = EncodeExtraDataMap(requestData.ExtraData)
+	if err != nil {
+		_AddBadRequestError(ww, fmt.Sprintf("AppendExtraData: Problem decoding ExtraData: %v", err))
+		return
 	}
 
 	// Get the final transaction bytes.
