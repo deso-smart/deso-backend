@@ -1,26 +1,23 @@
-FROM alpine:latest AS backend
+FROM golang:1.17-alpine3.15 AS builder
 
-RUN apk update
-RUN apk upgrade
-RUN apk add --update go gcc g++ vips-dev
+RUN apk --no-cache add gcc g++ vips-dev upx
 
-WORKDIR /deso/src/backend
+WORKDIR /usr/src/deso/backend
 
 COPY go.mod .
 COPY go.sum .
 
-RUN go mod download
+RUN go mod download && go mod verify
 
-# include backend src
-COPY apis      apis
-COPY config    config
-COPY cmd       cmd
-COPY miner     miner
-COPY routes    routes
+COPY apis apis
+COPY cmd cmd
+COPY config config
 COPY countries countries
-COPY main.go   .
+COPY miner miner
+COPY routes routes
+COPY main.go .
 
-# build backend
-RUN GOOS=linux go build -mod=mod -a -installsuffix cgo -o bin/backend main.go
+RUN GOOS=linux go build -ldflags "-s -w" -o /usr/local/bin/deso-backend main.go
+RUN upx /usr/local/bin/deso-backend
 
 ENTRYPOINT ["go", "test", "-v", "github.com/deso-smart/deso-backend/v2/routes"]
