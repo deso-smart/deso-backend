@@ -8,7 +8,7 @@ require (
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/davecgh/go-spew v1.1.1
 	github.com/deso-protocol/go-deadlock v1.0.0
-	github.com/deso-smart/deso-core/v2 v2.2.3
+	github.com/deso-smart/deso-core/v2 v2.2.5
 	github.com/dgraph-io/badger/v3 v3.2103.0
 	github.com/fatih/structs v1.1.0
 	github.com/golang-jwt/jwt/v4 v4.1.0

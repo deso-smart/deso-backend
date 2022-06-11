@@ -72,6 +72,7 @@ const (
 	RoutePathGetSingleProfile                           = "/api/v0/get-single-profile"
 	RoutePathGetSingleProfilePicture                    = "/api/v0/get-single-profile-picture"
 	RoutePathGetHodlersForPublicKey                     = "/api/v0/get-hodlers-for-public-key"
+	RoutePathGetHodlersCountForPublicKeys               = "/api/v0/get-hodlers-count-for-public-keys"
 	RoutePathGetDiamondsForPublicKey                    = "/api/v0/get-diamonds-for-public-key"
 	RoutePathGetFollowsStateless                        = "/api/v0/get-follows-stateless"
 	RoutePathGetUserGlobalMetadata                      = "/api/v0/get-user-global-metadata"
@@ -397,6 +398,9 @@ type APIServer struct {
 	BuyDESOFeeBasisPoints             uint64
 	JumioUSDCents                     uint64
 	JumioKickbackUSDCents             uint64
+
+	// Public keys that need their balances monitored. Map of Label to Public key
+	PublicKeyBalancesToMonitor map[string]string
 
 	// Signals that the frontend server is in a stopped state
 	quit chan struct{}
@@ -821,6 +825,13 @@ func (fes *APIServer) NewRouter() *muxtrace.Router {
 			[]string{"POST", "OPTIONS"},
 			RoutePathGetHodlersForPublicKey,
 			fes.GetHodlersForPublicKey,
+			PublicAccess,
+		},
+		{
+			"GetHodlersCountForPublicKeys",
+			[]string{"POST", "OPTIONS"},
+			RoutePathGetHodlersCountForPublicKeys,
+			fes.GetHodlersCountForPublicKeys,
 			PublicAccess,
 		},
 		{
@@ -1879,17 +1890,14 @@ func AddHeaders(inner http.Handler, allowedOrigins []string) http.Handler {
 		if (r.RequestURI == RoutePathUploadImage || r.RequestURI == RoutePathAdminUploadReferralCSV) &&
 			mediaType == "multipart/form-data" {
 			match = true
-			actualOrigin = "*"
 		} else if _, exists := publicRoutes[r.RequestURI]; exists {
 			// We set the headers for all requests to public routes.
 			// This allows third-party frontends to access this endpoint
 			match = true
-			actualOrigin = "*"
 		} else if strings.HasPrefix(r.RequestURI, RoutePathGetVideoStatus) || strings.HasPrefix(r.RequestURI, RoutePathGetUserMetadata) {
 			// We don't match the RoutePathGetVideoStatus and RoutePathGetUserMetadata paths exactly since there is a
 			// variable param. Check for the prefix instead.
 			match = true
-			actualOrigin = "*"
 		} else if r.Method == "POST" && mediaType != "application/json" && r.RequestURI != RoutePathJumioCallback {
 			invalidPostRequest = true
 		}
@@ -2152,6 +2160,9 @@ func (fes *APIServer) StartSeedBalancesMonitoring() {
 				tags := []string{}
 				fes.logBalanceForSeed(fes.Config.StarterDESOSeed, "STARTER_DESO", tags)
 				fes.logBalanceForSeed(fes.Config.BuyDESOSeed, "BUY_DESO", tags)
+				for label, publicKey := range fes.Config.PublicKeyBalancesToMonitor {
+					fes.logBalanceForPublicKey(publicKey, label, tags)
+				}
 			case <-fes.quit:
 				break out
 			}
@@ -2173,6 +2184,21 @@ func (fes *APIServer) logBalanceForSeed(seed string, seedName string, tags []str
 	}
 }
 
+func (fes *APIServer) logBalanceForPublicKey(publicKey []byte, label string, tags []string) {
+	if len(publicKey) != btcec.PubKeyBytesLenCompressed {
+		glog.Errorf("logBalanceForPublicKey: Invalid pub key length for pub key with label %v", label)
+		return
+	}
+	balance, err := fes.getBalanceForPubKey(publicKey)
+	if err != nil {
+		glog.Errorf("logBalanceForPublicKey: Error getting balance for label %v, public key %v: %v", label, lib.PkToString(publicKey, fes.Params), err)
+		return
+	}
+	if err = fes.backendServer.GetStatsdClient().Gauge(fmt.Sprintf("%v_BALANCE", label), float64(balance), tags, 1); err != nil {
+		glog.Errorf("logBalanceForPublicKey: Error logging balance to datadog for label %v, public key %v: %v", label, lib.PkToString(publicKey, fes.Params), err)
+	}
+}
+
 func (fes *APIServer) getBalanceForSeed(seedPhrase string) (uint64, error) {
 	seedBytes, err := bip39.NewSeedWithErrorChecking(seedPhrase, "")
 	if err != nil {
@@ -2183,13 +2209,17 @@ func (fes *APIServer) getBalanceForSeed(seedPhrase string) (uint64, error) {
 	if err != nil {
 		return 0, fmt.Errorf("GetBalanceForSeed: Error computing keys from seed: %+v", err)
 	}
+	return fes.getBalanceForPubKey(pubKey.SerializeCompressed())
+}
+
+func (fes *APIServer) getBalanceForPubKey(pubKey []byte) (uint64, error) {
 	utxoView, err := fes.backendServer.GetMempool().GetAugmentedUniversalView()
 	if err != nil {
-		return 0, fmt.Errorf("GetBalanceForSeed: Error getting UtxoView: %v", err)
+		return 0, fmt.Errorf("getBalanceForPubKey: Error getting UtxoView: %v", err)
 	}
-	currentBalanceNanos, err := GetBalanceForPublicKeyUsingUtxoView(pubKey.SerializeCompressed(), utxoView)
+	currentBalanceNanos, err := GetBalanceForPublicKeyUsingUtxoView(pubKey, utxoView)
 	if err != nil {
-		return 0, fmt.Errorf("GetBalanceForSeed: Error getting balance: %v", err)
+		return 0, fmt.Errorf("getBalanceForPubKey: Error getting balance: %v", err)
 	}
 	return currentBalanceNanos, nil
 }
