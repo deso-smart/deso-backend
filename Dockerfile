@@ -27,3 +27,5 @@ RUN apk --no-cache add vips
 COPY --from=builder /usr/local/bin/deso-backend /usr/local/bin/deso-backend
 
 ENTRYPOINT ["/usr/local/bin/deso-backend"]
+
+CMD ["run"]

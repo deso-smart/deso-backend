@@ -3,8 +3,7 @@
 # secrets.PROD_ENV
 # secrets.PROD_BACKEND_ENV
 #
-# secrets.PROJECT_NAME
-# secrets.IMAGE_NAME
+# secrets.NODE_BACKEND_IMAGE_NAME
 #
 # secrets.REGISTRY_URI
 # secrets.REGISTRY_USER
@@ -17,6 +16,9 @@
 name: Prod
 
 on:
+  push:
+    branches:
+      - main
   release:
     types:
       - published
@@ -40,7 +42,7 @@ jobs:
         id: metadata
         uses: docker/metadata-action@v4
         with:
-          images: ${{ secrets.REGISTRY_URI }}/${{ secrets.IMAGE_NAME }}
+          images: ${{ secrets.REGISTRY_URI }}/${{ secrets.NODE_BACKEND_IMAGE_NAME }}
           tags: |
             type=semver,pattern={{version}},priority=900
             type=semver,pattern={{major}}.{{minor}},priority=900
@@ -101,7 +103,7 @@ jobs:
       - name: Deploy
         uses: sulthonzh/docker-remote-deployment-action@v0.1.2-beta
         env:
-          IMAGE: ${{ secrets.REGISTRY_URI }}/${{ secrets.IMAGE_NAME }}:${{ github.sha }}
+          NODE_BACKEND_IMAGE: ${{ secrets.REGISTRY_URI }}/${{ secrets.NODE_BACKEND_IMAGE_NAME }}:${{ github.sha }}
         with:
           remote_docker_host: ${{ secrets.DOCKER_SSH_HOST }}
           ssh_private_key: ${{ secrets.DOCKER_SSH_PRIVATE_KEY }}
@@ -113,4 +115,4 @@ jobs:
           copy_stack_file: false
           stack_file_name: docker-compose.yaml
           pull_images_first: true
-          args: -p ${{ secrets.PROJECT_NAME }} up -d
+          args: up -d
