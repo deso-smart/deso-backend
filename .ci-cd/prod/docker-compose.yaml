@@ -6,16 +6,20 @@ services:
     env_file: .env.backend
     volumes:
       - db:/db
+    networks:
+      - node_backend_prod
+      - traefik
     ports:
       - '17000:17000'
       - '17001:17001'
     labels:
       - 'traefik.enable=true'
-      - 'traefik.http.routers.node-backend.entrypoints=websecure'
-      - 'traefik.http.routers.node-backend.tls=true'
-      - 'traefik.http.routers.node-backend.tls.certresolver=letsencrypt'
-      - 'traefik.http.routers.node-backend.rule=Host(`$NODE_BACKEND_HOST`) && PathPrefix(`/api/`)'
-      - 'traefik.http.services.node-backend.loadbalancer.server.port=17001'
+      - 'traefik.docker.network=traefik'
+      - 'traefik.http.routers.node-backend-prod.entrypoints=websecure'
+      - 'traefik.http.routers.node-backend-prod.tls=true'
+      - 'traefik.http.routers.node-backend-prod.tls.certresolver=letsencrypt'
+      - 'traefik.http.routers.node-backend-prod.rule=Host(`$NODE_BACKEND_HOST`) && PathPrefix(`/api/`)'
+      - 'traefik.http.services.node-backend-prod.loadbalancer.server.port=17001'
     restart: unless-stopped
 
 volumes:
@@ -23,5 +27,7 @@ volumes:
     driver: local
 
 networks:
-  default:
-    name: bigwig
+  node_backend_prod:
+    name: node_backend_prod
+  traefik:
+    name: traefik
