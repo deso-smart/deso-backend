@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/btcsuite/btcd/btcec"
-	"github.com/deso-smart/deso-core/v2/lib"
+	"github.com/deso-smart/deso-core/v3/lib"
 	"github.com/pkg/errors"
 )
 

@@ -3,10 +3,10 @@ package cmd
 import (
 	"path/filepath"
 
-	"github.com/deso-smart/deso-backend/v2/config"
-	"github.com/deso-smart/deso-backend/v2/routes"
-	coreCmd "github.com/deso-smart/deso-core/v2/cmd"
-	"github.com/deso-smart/deso-core/v2/lib"
+	"github.com/deso-smart/deso-backend/v3/config"
+	"github.com/deso-smart/deso-backend/v3/routes"
+	coreCmd "github.com/deso-smart/deso-core/v3/cmd"
+	"github.com/deso-smart/deso-core/v3/lib"
 	"github.com/dgraph-io/badger/v3"
 	"github.com/golang/glog"
 	"github.com/kevinburke/twilio-go"

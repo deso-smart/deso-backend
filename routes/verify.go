@@ -6,7 +6,7 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
-	"github.com/deso-smart/deso-backend/v2/countries"
+	"github.com/deso-smart/deso-backend/v3/countries"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -19,7 +19,7 @@ import (
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
 
-	"github.com/deso-smart/deso-core/v2/lib"
+	"github.com/deso-smart/deso-core/v3/lib"
 	"github.com/golang/glog"
 	"github.com/nyaruka/phonenumbers"
 )
@@ -140,6 +140,13 @@ func (fes *APIServer) canUserCreateProfile(userMetadata *UserMetadata, utxoView 
 		return true, nil
 	}
 
+	metamaskAirdropMetadata, err := fes.GetMetamaskAirdropMetadata(userMetadata.PublicKey)
+	if err != nil {
+		return false, err
+	}
+	if metamaskAirdropMetadata != nil && metamaskAirdropMetadata.ShouldCompProfileCreation {
+		return true, nil
+	}
 	// If we reached here, the user can't create a profile
 	return false, nil
 }

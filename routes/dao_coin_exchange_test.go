@@ -2,7 +2,7 @@ package routes
 
 import (
 	"fmt"
-	"github.com/deso-smart/deso-core/v2/lib"
+	"github.com/deso-smart/deso-core/v3/lib"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 	"testing"

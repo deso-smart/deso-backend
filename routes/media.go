@@ -21,7 +21,7 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/deso-smart/deso-core/v2/lib"
+	"github.com/deso-smart/deso-core/v3/lib"
 	"github.com/h2non/bimg"
 	"google.golang.org/api/option"
 )

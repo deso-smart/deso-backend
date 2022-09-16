@@ -1,6 +1,6 @@
-module github.com/deso-smart/deso-backend/v2
+module github.com/deso-smart/deso-backend/v3
 
-go 1.17
+go 1.18
 
 require (
 	cloud.google.com/go/storage v1.15.0
@@ -8,7 +8,7 @@ require (
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/davecgh/go-spew v1.1.1
 	github.com/deso-protocol/go-deadlock v1.0.0
-	github.com/deso-smart/deso-core/v2 v2.2.6
+	github.com/deso-smart/deso-core/v3 v3.0.1
 	github.com/dgraph-io/badger/v3 v3.2103.0
 	github.com/fatih/structs v1.1.0
 	github.com/golang-jwt/jwt/v4 v4.1.0
@@ -45,7 +45,8 @@ require (
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
 	github.com/cloudflare/circl v1.1.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
-	github.com/decred/dcrd/lru v1.1.0 // indirect
+	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1 // indirect
+	github.com/decred/dcrd/lru v1.1.1 // indirect
 	github.com/deso-protocol/go-merkle-tree v1.0.0 // indirect
 	github.com/dgraph-io/ristretto v0.1.0 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect

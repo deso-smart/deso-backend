@@ -19,7 +19,7 @@ import (
 	"github.com/dgraph-io/badger/v3"
 	"github.com/gorilla/mux"
 
-	"github.com/deso-smart/deso-core/v2/lib"
+	"github.com/deso-smart/deso-core/v3/lib"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 )
@@ -3227,29 +3227,15 @@ func (fes *APIServer) GetUserDerivedKeys(ww http.ResponseWriter, req *http.Reque
 
 	// Derived keys are not automatically expired in the DB when we reach the expiration block height.
 	// They should be manually checked against the current block height to verify their validity.
-	blockTip := fes.backendServer.GetBlockchain().BlockTip()
+	blockHeight := fes.backendServer.GetBlockchain().BlockTip().Height
 
 	// Create the derivedKeys map, indexed by derivedPublicKeys in base58Check.
 	// We use the UserDerivedKey struct instead of the lib.DerivedKeyEntry type
 	// so that we can return public keys in base58Check.
 	derivedKeys := make(map[string]*UserDerivedKey)
 	for _, entry := range derivedKeyMappings {
-		// isValid is initialized to true if the derived key entry is marked as valid in the DB.
-		isValid := entry.OperationType == lib.AuthorizeDerivedKeyOperationValid
-		// Check if the key has expired, if so then we will invalidate the key in the response.
-		if entry.ExpirationBlock <= uint64(blockTip.Height) {
-			isValid = false
-		}
-		derivedPublicKey := lib.PkToString(entry.DerivedPublicKey[:], fes.Params)
-		derivedKeys[derivedPublicKey] = &UserDerivedKey{
-			OwnerPublicKeyBase58Check:   lib.PkToString(entry.OwnerPublicKey[:], fes.Params),
-			DerivedPublicKeyBase58Check: lib.PkToString(entry.DerivedPublicKey[:], fes.Params),
-			ExpirationBlock:             entry.ExpirationBlock,
-			IsValid:                     isValid,
-			ExtraData:                   DecodeExtraDataMap(fes.Params, utxoView, entry.ExtraData),
-			TransactionSpendingLimit:    TransactionSpendingLimitToResponse(entry.TransactionSpendingLimitTracker, utxoView, fes.Params),
-			Memo:                        hex.EncodeToString(entry.Memo),
-		}
+		derivedKey := fes.DerivedKeyEntryToUserDerivedKey(entry, blockHeight, utxoView)
+		derivedKeys[derivedKey.DerivedPublicKeyBase58Check] = derivedKey
 	}
 
 	res := GetUserDerivedKeysResponse{
@@ -3259,6 +3245,81 @@ func (fes *APIServer) GetUserDerivedKeys(ww http.ResponseWriter, req *http.Reque
 	if err = json.NewEncoder(ww).Encode(res); err != nil {
 		_AddInternalServerError(ww, fmt.Sprintf("GetUserDerivedKeys: Problem serializing object to JSON: %v", err))
 		return
+	}
+}
+
+type GetSingleDerivedKeyResponse struct {
+	DerivedKey *UserDerivedKey
+}
+
+func (fes *APIServer) GetSingleDerivedKey(ww http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+
+	ownerPublicKeyBase58Check, ownerPublicKeyExists := vars["ownerPublicKeyBase58Check"]
+	if !ownerPublicKeyExists {
+		_AddBadRequestError(ww, fmt.Sprintf("GetSingleDerivedKey: ownerPublicKeyBase58Check required"))
+		return
+	}
+
+	derivedPublicKeyBase58Check, derivedPublicKeyExists := vars["derivedPublicKeyBase58Check"]
+	if !derivedPublicKeyExists {
+		_AddBadRequestError(ww, fmt.Sprintf("GetSingleDerivedKey: derivedPublicKeyBase58Check required"))
+		return
+	}
+
+	ownerPublicKeyBytes, _, err := lib.Base58CheckDecode(ownerPublicKeyBase58Check)
+	if err != nil || len(ownerPublicKeyBytes) != btcec.PubKeyBytesLenCompressed {
+		_AddBadRequestError(ww, fmt.Sprintf(
+			"GetSingleDerivedKey: Problem decoding owner public key %s: %v",
+			ownerPublicKeyBase58Check, err))
+		return
+	}
+
+	derivedPublicKeyBytes, _, err := lib.Base58CheckDecode(derivedPublicKeyBase58Check)
+	if err != nil || len(derivedPublicKeyBytes) != btcec.PubKeyBytesLenCompressed {
+		_AddBadRequestError(ww, fmt.Sprintf(
+			"GetSingleDerivedKey: Problem decoding derived public key %s: %v",
+			derivedPublicKeyBase58Check, err))
+		return
+	}
+
+	// Get augmented utxoView.
+	utxoView, err := fes.backendServer.GetMempool().GetAugmentedUniversalView()
+	if err != nil {
+		_AddInternalServerError(ww, fmt.Sprintf("GetSingleDerivedKey: Problem getting augmented utxoView: %v", err))
+		return
+	}
+	derivedKeyEntry := utxoView.GetDerivedKeyMappingForOwner(ownerPublicKeyBytes, derivedPublicKeyBytes)
+	if derivedKeyEntry == nil || derivedKeyEntry.IsDeleted() {
+		_AddBadRequestError(ww, fmt.Sprintf("GetSingleDerivedKey: DerivedKey was not found"))
+		return
+	}
+
+	res := GetSingleDerivedKeyResponse{
+		DerivedKey: fes.DerivedKeyEntryToUserDerivedKey(derivedKeyEntry, fes.backendServer.GetBlockchain().BlockTip().Height, utxoView),
+	}
+
+	if err = json.NewEncoder(ww).Encode(res); err != nil {
+		_AddInternalServerError(ww, fmt.Sprintf("GetSingleDerivedKey: Problem serializing object to JSON: %v", err))
+		return
+	}
+}
+
+func (fes *APIServer) DerivedKeyEntryToUserDerivedKey(entry *lib.DerivedKeyEntry, blockHeight uint32, utxoView *lib.UtxoView) *UserDerivedKey {
+	// isValid is initialized to true if the derived key entry is marked as valid in the DB.
+	isValid := entry.OperationType == lib.AuthorizeDerivedKeyOperationValid
+	// Check if the key has expired, if so then we will invalidate the key in the response.
+	if entry.ExpirationBlock <= uint64(blockHeight) {
+		isValid = false
+	}
+	return &UserDerivedKey{
+		OwnerPublicKeyBase58Check:   lib.PkToString(entry.OwnerPublicKey[:], fes.Params),
+		DerivedPublicKeyBase58Check: lib.PkToString(entry.DerivedPublicKey[:], fes.Params),
+		ExpirationBlock:             entry.ExpirationBlock,
+		IsValid:                     isValid,
+		ExtraData:                   DecodeExtraDataMap(fes.Params, utxoView, entry.ExtraData),
+		TransactionSpendingLimit:    TransactionSpendingLimitToResponse(entry.TransactionSpendingLimitTracker, utxoView, fes.Params),
+		Memo:                        hex.EncodeToString(entry.Memo),
 	}
 }
 
@@ -3283,7 +3344,8 @@ func (fes *APIServer) GetTransactionSpendingLimitHexString(ww http.ResponseWrite
 			"spending limit from response: %v", err))
 		return
 	}
-	tslBytes, err := transactionSpendingLimit.ToBytes()
+	blockHeight := uint64(fes.blockchain.BlockTip().Height)
+	tslBytes, err := transactionSpendingLimit.ToBytes(blockHeight)
 	if err != nil {
 		_AddBadRequestError(ww, fmt.Sprintf("GetTransactionSpendingLimitHexString: Error in ToBytes: %v", err))
 		return
@@ -3294,6 +3356,56 @@ func (fes *APIServer) GetTransactionSpendingLimitHexString(ww http.ResponseWrite
 	}
 	if err = json.NewEncoder(ww).Encode(res); err != nil {
 		_AddInternalServerError(ww, fmt.Sprintf("GetTransactionSpendingLimitHexString: Problem serializing object to JSON: %v", err))
+		return
+	}
+}
+
+type GetAccessBytesRequest struct {
+	DerivedPublicKeyBase58Check string
+	ExpirationBlock             uint64
+	TransactionSpendingLimit    TransactionSpendingLimitResponse
+}
+
+type GetAccessBytesResponse struct {
+	TransactionSpendingLimitHex string
+	AccessBytesHex              string
+}
+
+func (fes *APIServer) GetAccessBytes(ww http.ResponseWriter, req *http.Request) {
+	decoder := json.NewDecoder(io.LimitReader(req.Body, MaxRequestBodySizeBytes))
+	requestData := GetAccessBytesRequest{}
+	if err := decoder.Decode(&requestData); err != nil {
+		_AddBadRequestError(ww, fmt.Sprintf("GetAccessBytes: Error parsing request body: %v", err))
+		return
+	}
+	derivedPublicKey, _, err := lib.Base58CheckDecode(requestData.DerivedPublicKeyBase58Check)
+	if err != nil {
+		_AddBadRequestError(ww, fmt.Sprintf("GetAccessBytes: Problem decoding derived public key: %v", err))
+		return
+	}
+
+	transactionSpendingLimit, err := fes.TransactionSpendingLimitFromResponse(requestData.TransactionSpendingLimit)
+	if err != nil {
+		_AddBadRequestError(ww, fmt.Sprintf("GetAccessBytes: Error parsing transaction "+
+			"spending limit from response: %v", err))
+		return
+	}
+	// Sanity check: Try encoding transactionSpendingLimit just in case.
+	blockHeight := uint64(fes.blockchain.BlockTip().Height)
+	transactionSpendingBytes, err := transactionSpendingLimit.ToBytes(blockHeight)
+	if err != nil {
+		_AddBadRequestError(ww, fmt.Sprintf("GetAccessBytes: Error in ToBytes: %v", err))
+		return
+	}
+
+	accessBytes := lib.AssembleAccessBytesWithMetamaskStrings(derivedPublicKey, requestData.ExpirationBlock,
+		transactionSpendingLimit, fes.Params)
+	res := &GetAccessBytesResponse{
+		TransactionSpendingLimitHex: hex.EncodeToString(transactionSpendingBytes),
+		AccessBytesHex:              hex.EncodeToString(accessBytes),
+	}
+	if err = json.NewEncoder(ww).Encode(res); err != nil {
+		_AddInternalServerError(ww, fmt.Sprintf("GetAccessBytes: Problem serializing object to JSON: %v", err))
 		return
 	}
 }
@@ -3316,8 +3428,9 @@ func (fes *APIServer) GetTransactionSpendingLimitResponseFromHex(ww http.Respons
 	}
 
 	var transactionSpendingLimit lib.TransactionSpendingLimit
+	blockHeight := uint64(fes.blockchain.BlockTip().Height)
 	rr := bytes.NewReader(tslBytes)
-	if err = transactionSpendingLimit.FromBytes(rr); err != nil {
+	if err = transactionSpendingLimit.FromBytes(blockHeight, rr); err != nil {
 		_AddBadRequestError(ww, fmt.Sprintf(
 			"GetTransactionSpendingLimitResponseFromHex: Error constructing TransactionSpendingLimit from bytes"))
 		return

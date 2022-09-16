@@ -5,8 +5,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"github.com/btcsuite/btcd/btcec"
-	"github.com/deso-smart/deso-backend/v2/routes"
-	"github.com/deso-smart/deso-core/v2/lib"
+	"github.com/deso-smart/deso-backend/v3/routes"
+	"github.com/deso-smart/deso-core/v3/lib"
 	"github.com/pkg/errors"
 	"io/ioutil"
 	"net/http"
@@ -87,7 +87,7 @@ func SendDiamonds(senderPubKey *btcec.PublicKey, senderPrivKey *btcec.PrivateKey
 	if err != nil {
 		return errors.Wrap(err, "SendDiamonds() failed to sign transaction")
 	}
-	txn.Signature = signature
+	txn.Signature.SetSignature(signature)
 
 	// Submit the transaction to the node
 	err = SubmitTransactionToNode(txn, node)

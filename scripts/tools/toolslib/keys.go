@@ -2,7 +2,7 @@ package toolslib
 
 import (
 	"github.com/btcsuite/btcd/btcec"
-	"github.com/deso-smart/deso-core/v2/lib"
+	"github.com/deso-smart/deso-core/v3/lib"
 	"github.com/tyler-smith/go-bip39"
 )
 

@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/deso-smart/deso-backend/v2/scripts/tools/toolslib"
-	"github.com/deso-smart/deso-core/v2/lib"
+	"github.com/deso-smart/deso-backend/v3/scripts/tools/toolslib"
+	"github.com/deso-smart/deso-core/v3/lib"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/semaphore"
 	"sort"

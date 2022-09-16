@@ -1,4 +1,4 @@
-FROM golang:1.17-alpine3.15 AS builder
+FROM golang:1.18-alpine3.16 AS builder
 
 RUN apk --no-cache add gcc g++ vips-dev upx
 
@@ -20,4 +20,4 @@ COPY main.go .
 RUN GOOS=linux go build -ldflags "-s -w" -o /usr/local/bin/deso-backend main.go
 RUN upx /usr/local/bin/deso-backend
 
-ENTRYPOINT ["go", "test", "-v", "github.com/deso-smart/deso-backend/v2/routes"]
+ENTRYPOINT ["go", "test", "-v", "github.com/deso-smart/deso-backend/v3/routes"]

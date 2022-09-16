@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/deso-smart/deso-core/v2/lib"
+	"github.com/deso-smart/deso-core/v3/lib"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	"github.com/tyler-smith/go-bip39"
@@ -391,6 +391,7 @@ func (fes *APIServer) SendSeedDeSo(recipientPkBytes []byte, amountNanos uint64, 
 		if err != nil {
 			return nil, err
 		}
+
 		minFee := fes.MinFeeRateNanosPerKB
 		if utxoView.GlobalParamsEntry != nil && utxoView.GlobalParamsEntry.MinimumNetworkFeeNanosPerKB > 0 {
 			minFee = utxoView.GlobalParamsEntry.MinimumNetworkFeeNanosPerKB
@@ -404,7 +405,7 @@ func (fes *APIServer) SendSeedDeSo(recipientPkBytes []byte, amountNanos uint64, 
 		if err != nil {
 			return nil, fmt.Errorf("SendSeedDeSo: Error adding inputs for seed DeSo: %v", err)
 		}
-		txn.Signature = txnSignature
+		txn.Signature.SetSignature(txnSignature)
 
 		err = fes.backendServer.VerifyAndBroadcastTransaction(txn)
 		if err != nil {
