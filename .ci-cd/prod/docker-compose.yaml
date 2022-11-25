@@ -22,40 +22,8 @@ services:
       - 'traefik.http.services.node-backend-prod.loadbalancer.server.port=17001'
     restart: unless-stopped
 
-  node_backend_replica:
-    image: ${NODE_BACKEND_IMAGE}
-    environment:
-      - CONNECT_IPS=node_backend:17000
-      - DATA_DIR=/db
-      - HYPERSYNC=false
-      - POSTGRES_URI=postgresql://default:secret@postgres:5432/default?sslmode=disable
-      - READ_ONLY_MODE=true
-    volumes:
-      - db_replica:/db
-    networks:
-      - node_backend_prod
-    restart: unless-stopped
-
-  postgres:
-    image: postgres:14-alpine3.16
-    environment:
-      - POSTGRES_USER=default
-      - POSTGRES_PASSWORD=secret
-      - POSTGRES_DB=default
-    networks:
-      - node_backend_prod
-    ports:
-      - '127.0.0.1:21145:5432'
-    volumes:
-      - postgres:/var/lib/postgresql/data
-    restart: unless-stopped
-
 volumes:
   db:
-    driver: local
-  db_replica:
-    driver: local
-  postgres:
     driver: local
 
 networks:
