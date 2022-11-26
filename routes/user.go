@@ -1237,7 +1237,7 @@ func (fes *APIServer) GetSingleProfile(ww http.ResponseWriter, req *http.Request
 	}
 
 	// Return an error if we failed to find a profile entry
-	if profileEntry == nil {
+	if profileEntry == nil || profileEntry.IsDeleted() {
 		if !requestData.NoErrorOnMissing {
 			_AddNotFoundError(ww, fmt.Sprintf("GetSingleProfile: could not find profile for username or public key: %v, %v", requestData.Username, requestData.PublicKeyBase58Check))
 		}
@@ -1256,13 +1256,13 @@ func (fes *APIServer) GetSingleProfile(ww http.ResponseWriter, req *http.Request
 
 	var userMetadata *UserMetadata
 	userMetadata, err = fes.getUserMetadataFromGlobalState(publicKeyBase58Check)
-	if err != nil {
-		_AddBadRequestError(ww, fmt.Sprintf("GetSingleProfile: error getting usermetadata for public key: %v", err))
-		return
+	if userMetadata != nil {
+		res.Profile.IsFeaturedTutorialUpAndComingCreator = userMetadata.IsFeaturedTutorialUpAndComingCreator
+		res.Profile.IsFeaturedTutorialWellKnownCreator = userMetadata.IsFeaturedTutorialWellKnownCreator
 	}
-
-	res.Profile.IsFeaturedTutorialUpAndComingCreator = userMetadata.IsFeaturedTutorialUpAndComingCreator
-	res.Profile.IsFeaturedTutorialWellKnownCreator = userMetadata.IsFeaturedTutorialWellKnownCreator
+	if err != nil {
+		glog.Errorf("GetSingleProfile: error getting usermetadata for public key: %v", err)
+	}
 
 	if err = json.NewEncoder(ww).Encode(res); err != nil {
 		_AddInternalServerError(ww, fmt.Sprintf("GetSingleProfile: Problem serializing object to JSON: %v", err))
@@ -3121,7 +3121,7 @@ func (fes *APIServer) GetUsernameForPublicKey(ww http.ResponseWriter, req *http.
 		return
 	}
 
-	if err = json.NewEncoder(ww).Encode(profileEntry.Username); err != nil {
+	if err = json.NewEncoder(ww).Encode(string(profileEntry.Username)); err != nil {
 		_AddBadRequestError(ww, fmt.Sprintf("GetUsernameForPublicKey: Error encoding response: %v", err))
 		return
 	}

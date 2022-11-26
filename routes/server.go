@@ -315,6 +315,10 @@ type APIServer struct {
 	// How far back do we consider trade prices when we set the current price of $DESO in nanoseconds
 	LastTradePriceLookback uint64
 
+	// most recent exchange prices fetched
+	MostRecentCoinbasePriceUSDCents         uint64
+	MostRecentBlockchainDotComPriceUSDCents uint64
+
 	// Base-58 prefix to check for to determine if a string could be a public key.
 	PublicKeyBase58Prefix string
 
